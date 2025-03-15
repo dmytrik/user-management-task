@@ -21,6 +21,8 @@ class Settings(BaseSettings):
 
     @property
     def database_url(self) -> str:
+        if self.environment == "testing":
+            return "sqlite:///:memory:"
         return (
             f"postgresql+psycopg2://{self.db_user}:{self.db_password}"
             f"@{self.db_host}:{self.db_port}/{self.db_name}"

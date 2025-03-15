@@ -3,6 +3,7 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import create_engine
 from core.database import Base
+from src.users.models import User # noqa: F401
 from core.settings import settings
 
 config = context.config
