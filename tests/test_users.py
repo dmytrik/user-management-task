@@ -3,6 +3,7 @@ import json
 
 
 def test_create_user(test_client, db_session):
+    """Test creating a new user."""
     unique_email = "user_test_create@example.com"
     response = test_client.post(
         "/users/",
@@ -17,6 +18,7 @@ def test_create_user(test_client, db_session):
 
 
 def test_create_user_duplicate_email(test_client, db_session):
+    """Test creating a user with a duplicate email."""
     unique_email = "duplicate@example.com"
     response = test_client.post(
         "/users/",
@@ -36,6 +38,7 @@ def test_create_user_duplicate_email(test_client, db_session):
 
 
 def test_create_user_invalid_data(test_client, db_session):
+    """Test creating a user with invalid data."""
     response = test_client.post(
         "/users/",
         data=json.dumps({"name": "test1234", "email": "test@mail.com"}),
@@ -48,12 +51,14 @@ def test_create_user_invalid_data(test_client, db_session):
 
 
 def test_get_users(test_client, db_session):
+    """Test retrieving all users."""
     response = test_client.get("/users/")
     assert response.status_code == 200
     assert isinstance(response.json, list)
 
 
 def test_get_user(test_client, db_session):
+    """Test retrieving a user by ID."""
     unique_email = "user_test_get@example.com"
     response = test_client.post(
         "/users/",
@@ -70,12 +75,14 @@ def test_get_user(test_client, db_session):
 
 
 def test_get_user_not_found(test_client, db_session):
+    """Test retrieving a non-existent user."""
     response = test_client.get("/users/999/")
     assert response.status_code == 404
     assert response.json["detail"] == "User not found"
 
 
 def test_update_user(test_client, db_session):
+    """Test updating an existing user."""
     unique_email = "user_test_update@example.com"
     response = test_client.post(
         "/users/",
@@ -98,6 +105,7 @@ def test_update_user(test_client, db_session):
 
 
 def test_update_user_duplicate_email(test_client, db_session):
+    """Test updating a user with an existing email."""
     response = test_client.post(
         "/users/",
         data=json.dumps({"name": "UserOne", "email": "user1@example.com"}),
@@ -125,6 +133,7 @@ def test_update_user_duplicate_email(test_client, db_session):
 
 
 def test_update_user_invalid_data(test_client, db_session):
+    """Test updating a user with invalid data."""
     unique_email = "user_test_invalid@example.com"
     response = test_client.post(
         "/users/",
@@ -144,6 +153,7 @@ def test_update_user_invalid_data(test_client, db_session):
 
 
 def test_update_user_not_found(test_client, db_session):
+    """Test updating a non-existent user."""
     response = test_client.put(
         "/users/999/",
         data=json.dumps({"name": "Nonexistent", "email": "none@example.com"}),
@@ -154,6 +164,7 @@ def test_update_user_not_found(test_client, db_session):
 
 
 def test_delete_user(test_client, db_session):
+    """Test deleting an existing user."""
     unique_email = "user_test_delete@example.com"
     response = test_client.post(
         "/users/",
@@ -169,6 +180,7 @@ def test_delete_user(test_client, db_session):
 
 
 def test_delete_user_not_found(test_client, db_session):
+    """Test deleting a non-existent user."""
     response = test_client.delete("/users/999/")
     assert response.status_code == 404
     assert response.json["detail"] == "User not found"

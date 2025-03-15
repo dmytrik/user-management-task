@@ -3,6 +3,7 @@ from pydantic import ValidationError
 
 
 def validate_name(name: str) -> str:
+    """Validate the user's name."""
     normalized_name = name.strip()
     if len(normalized_name) < 2:
         raise ValidationError("Name must be at least 2 characters long")
@@ -12,6 +13,7 @@ def validate_name(name: str) -> str:
 
 
 def validate_email(user_email: str) -> str:
+    """Validate the user's email address."""
     try:
         email_info = email_validator.validate_email(
             user_email, check_deliverability=False

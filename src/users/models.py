@@ -7,6 +7,8 @@ from core.database import Base
 
 
 class User(Base):
+    """User model representing a user in the database."""
+
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(

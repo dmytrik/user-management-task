@@ -1,4 +1,8 @@
-from flask import Blueprint, jsonify, request
+from flask import (
+    Blueprint,
+    jsonify,
+    request
+)
 from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
@@ -12,6 +16,7 @@ from src.users.schemas import (
     UserUpdateResponseSchema,
 )
 from core.database import get_db
+
 
 router = Blueprint("users", __name__, url_prefix="/users")
 
@@ -42,7 +47,7 @@ router = Blueprint("users", __name__, url_prefix="/users")
     }
 )
 def create_user():
-    """Creates a new user."""
+    """Create a new user in the database."""
     session = next(get_db())
     try:
         user_data = UserCreateRequestSchema(**request.get_json())
@@ -91,6 +96,7 @@ def create_user():
     }
 )
 def get_users():
+    """Retrieve a list of all users."""
     session = next(get_db())
     try:
         stmt = select(User)
@@ -145,7 +151,7 @@ def get_users():
     }
 )
 def update_user(user_id: int):
-    "Updates a user by ID."
+    """Update an existing user by ID."""
     session = next(get_db())
     try:
         user_data = UserUpdateRequestSchema(**request.get_json())
@@ -214,7 +220,7 @@ def update_user(user_id: int):
     }
 )
 def get_user(user_id: int):
-    """Returns a user by ID."""
+    """Retrieve a user by ID."""
     session = next(get_db())
     try:
         stmt = select(User).where(User.id == user_id)

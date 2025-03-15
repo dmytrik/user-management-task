@@ -2,6 +2,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    """Configuration settings for the application."""
+
     environment: str
     postgres_port: int
     postgres_user: str
@@ -14,19 +16,16 @@ class Settings(BaseSettings):
 
     @property
     def db_host(self) -> str:
+        """Return the database host based on the environment."""
         if self.environment == "local":
             return "localhost"
         return "db"
 
     @property
     def database_url(self) -> str:
+        """Generate the database URL based on the environment."""
         if self.environment == "testing":
             return "sqlite:///:memory:"
-        elif self.environment == "docker":
-            return (
-                f"postgresql+psycopg2://{self.postgres_user}:{self.postgres_password}"
-                f"@{self.db_host}:{self.postgres_port}/{self.postgres_name}"
-            )
         return (
             f"postgresql+psycopg2://{self.postgres_user}:{self.postgres_password}"
             f"@{self.db_host}:{self.postgres_port}/{self.postgres_name}"

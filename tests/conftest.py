@@ -8,8 +8,6 @@ from run import create_app
 
 settings.environment = "testing"
 TEST_DATABASE_URL = settings.database_url
-
-
 test_engine = create_engine(TEST_DATABASE_URL, echo=True)
 TestSessionLocal = sessionmaker(
     autocommit=False, autoflush=False, bind=test_engine
@@ -18,6 +16,7 @@ TestSessionLocal = sessionmaker(
 
 @pytest.fixture(scope="function")
 def test_app(monkeypatch):
+    """Create and configure a Flask app instance for testing."""
     monkeypatch.setattr("core.database.engine", test_engine)
     monkeypatch.setattr("core.database.SessionLocal", TestSessionLocal)
 
@@ -31,11 +30,13 @@ def test_app(monkeypatch):
 
 @pytest.fixture(scope="function")
 def test_client(test_app):
+    """Provide a test client for the Flask app."""
     return test_app.test_client()
 
 
 @pytest.fixture(scope="function")
 def db_session(monkeypatch):
+    """Provide a test database session with cleanup."""
     session = TestSessionLocal()
 
     for table in reversed(Base.metadata.sorted_tables):
@@ -43,6 +44,7 @@ def db_session(monkeypatch):
     session.commit()
 
     def override_get_db():
+        """Override the get_db dependency for testing."""
         yield session
 
     monkeypatch.setattr("core.database.get_db", override_get_db)
