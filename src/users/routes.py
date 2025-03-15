@@ -107,6 +107,7 @@ def get_users():
     }
 })
 def update_user(user_id: int):
+    "Updates a user by ID."
     session = next(get_db())
     try:
         user_data = UserUpdateRequestSchema(**request.get_json())
@@ -140,3 +141,37 @@ def update_user(user_id: int):
     except Exception:
         session.rollback()
         return jsonify({"detail": "Unexpected server error"}), 500
+    finally:
+        session.close()
+
+
+@router.route('/<int:user_id>/', methods=['GET'])
+@swag_from({
+    'tags': ['Users'],
+    'summary': 'Get a user by ID',
+    'description': 'Returns a user by ID.',
+    'parameters': [
+        {'name': 'user_id', 'in': 'path', 'type': 'integer', 'required': True, 'description': 'User ID'},
+    ],
+    'responses': {
+        '200': {'description': 'User details', 'schema': UserCreateResponseSchema.model_json_schema()},
+        '404': {'description': 'User not found'},
+        '500': {'description': 'Server error'},
+    }
+})
+def get_user(user_id: int):
+    """Returns a user by ID."""
+    session = next(get_db())
+    try:
+        stmt = select(User).where(User.id == user_id)
+        user = session.scalars(stmt).first()
+        if not user:
+            return jsonify({"detail": "User not found"}), 404
+        res = UserCreateResponseSchema.model_validate(user).model_dump()
+        return jsonify(res), 200
+    except SQLAlchemyError:
+        return jsonify({"detail": "Database error"}), 500
+    except Exception:
+        return jsonify({"detail": "Server error"}), 500
+    finally:
+        session.close()
