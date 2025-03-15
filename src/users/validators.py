@@ -3,7 +3,7 @@ from pydantic import ValidationError
 
 
 def validate_name(name: str) -> str:
-    normalized_name = name.strip();
+    normalized_name = name.strip()
     if len(normalized_name) < 2:
         raise ValidationError("Name must be at least 2 characters long")
     elif any(char.isdigit() for char in normalized_name):

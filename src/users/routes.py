@@ -1,33 +1,45 @@
 from flask import Blueprint, jsonify, request
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
+from flasgger import swag_from
 
 from src.users.models import User
 from src.users.schemas import (
     UserCreateRequestSchema,
-    UserCreateResponseSchema, UserUpdateRequestSchema, UserUpdateResponseSchema,
+    UserCreateResponseSchema,
+    UserUpdateRequestSchema,
+    UserUpdateResponseSchema,
 )
 from core.database import get_db
-from flasgger import swag_from
 
-router = Blueprint('users', __name__, url_prefix='/users')
+router = Blueprint("users", __name__, url_prefix="/users")
 
 
-@router.route('/', methods=['POST'])
-@swag_from({
-    'tags': ['Users'],
-    'summary': 'Create a new user',
-    'description': 'Creates a user with name and email.',
-    'parameters': [
-        {'name': 'body', 'in': 'body', 'required': True, 'schema': UserCreateRequestSchema.model_json_schema()},
-    ],
-    'responses': {
-        '201': {'description': 'User created', 'schema': UserCreateResponseSchema.model_json_schema()},
-        '422': {'description': 'Validation error'},
-        '409': {'description': 'Email already exists'},
-        '500': {'description': 'Server error'},
+@router.route("/", methods=["POST"])
+@swag_from(
+    {
+        "tags": ["Users"],
+        "summary": "Create a new user",
+        "description": "Creates a user with name and email.",
+        "parameters": [
+            {
+                "name": "body",
+                "in": "body",
+                "required": True,
+                "schema": UserCreateRequestSchema.model_json_schema(),
+            },
+        ],
+        "responses": {
+            "201": {
+                "description": "User created",
+                "schema": UserCreateResponseSchema.model_json_schema(),
+            },
+            "422": {"description": "Validation error"},
+            "409": {"description": "Email already exists"},
+            "500": {"description": "Server error"},
+        },
     }
-})
+)
 def create_user():
     """Creates a new user."""
     session = next(get_db())
@@ -58,16 +70,25 @@ def create_user():
     finally:
         session.close()
 
-@router.route('/', methods=['GET'])
-@swag_from({
-    'tags': ['Users'],
-    'summary': 'Get all users',
-    'description': 'Returns a list of all users.',
-    'responses': {
-        '200': {'description': 'List of users', 'schema': {'type': 'array', 'items': UserCreateResponseSchema.model_json_schema()}},
-        '500': {'description': 'Server error'},
+
+@router.route("/", methods=["GET"])
+@swag_from(
+    {
+        "tags": ["Users"],
+        "summary": "Get all users",
+        "description": "Returns a list of all users.",
+        "responses": {
+            "200": {
+                "description": "List of users",
+                "schema": {
+                    "type": "array",
+                    "items": UserCreateResponseSchema.model_json_schema(),
+                },
+            },
+            "500": {"description": "Server error"},
+        },
     }
-})
+)
 def get_users():
     session = next(get_db())
     try:
@@ -89,23 +110,39 @@ def get_users():
         session.close()
 
 
-@router.route('/<int:user_id>/', methods=['PUT'])
-@swag_from({
-    'tags': ['Users'],
-    'summary': 'Update a user',
-    'description': 'Updates a user by ID.',
-    'parameters': [
-        {'name': 'user_id', 'in': 'path', 'type': 'integer', 'required': True, 'description': 'User ID'},
-        {'name': 'body', 'in': 'body', 'required': True, 'schema': UserUpdateRequestSchema.model_json_schema()},
-    ],
-    'responses': {
-        '200': {'description': 'User updated', 'schema': UserUpdateResponseSchema.model_json_schema()},
-        '422': {'description': 'Validation error'},
-        '404': {'description': 'User not found'},
-        '409': {'description': 'Email already exists'},
-        '500': {'description': 'Server error'},
+@router.route("/<int:user_id>/", methods=["PUT"])
+@swag_from(
+    {
+        "tags": ["Users"],
+        "summary": "Update a user",
+        "description": "Updates a user by ID.",
+        "parameters": [
+            {
+                "name": "user_id",
+                "in": "path",
+                "type": "integer",
+                "required": True,
+                "description": "User ID",
+            },
+            {
+                "name": "body",
+                "in": "body",
+                "required": True,
+                "schema": UserUpdateRequestSchema.model_json_schema(),
+            },
+        ],
+        "responses": {
+            "200": {
+                "description": "User updated",
+                "schema": UserUpdateResponseSchema.model_json_schema(),
+            },
+            "422": {"description": "Validation error"},
+            "404": {"description": "User not found"},
+            "409": {"description": "Email already exists"},
+            "500": {"description": "Server error"},
+        },
     }
-})
+)
 def update_user(user_id: int):
     "Updates a user by ID."
     session = next(get_db())
@@ -121,10 +158,14 @@ def update_user(user_id: int):
             user.name = user_data.name
 
         if user_data.email is not None:
-            email_exists_stmt = select(User).where(User.email == user_data.email, User.id != user_id)
+            email_exists_stmt = select(User).where(
+                User.email == user_data.email, User.id != user_id
+            )
             existing_user = session.scalars(email_exists_stmt).first()
             if existing_user:
-                return jsonify({"detail": f"Email {user_data.email} already exists"}), 409
+                return jsonify(
+                    {"detail": f"Email {user_data.email} already exists"}
+                ), 409
             user.email = user_data.email
 
         session.commit()
@@ -145,20 +186,31 @@ def update_user(user_id: int):
         session.close()
 
 
-@router.route('/<int:user_id>/', methods=['GET'])
-@swag_from({
-    'tags': ['Users'],
-    'summary': 'Get a user by ID',
-    'description': 'Returns a user by ID.',
-    'parameters': [
-        {'name': 'user_id', 'in': 'path', 'type': 'integer', 'required': True, 'description': 'User ID'},
-    ],
-    'responses': {
-        '200': {'description': 'User details', 'schema': UserCreateResponseSchema.model_json_schema()},
-        '404': {'description': 'User not found'},
-        '500': {'description': 'Server error'},
+@router.route("/<int:user_id>/", methods=["GET"])
+@swag_from(
+    {
+        "tags": ["Users"],
+        "summary": "Get a user by ID",
+        "description": "Returns a user by ID.",
+        "parameters": [
+            {
+                "name": "user_id",
+                "in": "path",
+                "type": "integer",
+                "required": True,
+                "description": "User ID",
+            },
+        ],
+        "responses": {
+            "200": {
+                "description": "User details",
+                "schema": UserCreateResponseSchema.model_json_schema(),
+            },
+            "404": {"description": "User not found"},
+            "500": {"description": "Server error"},
+        },
     }
-})
+)
 def get_user(user_id: int):
     """Returns a user by ID."""
     session = next(get_db())
@@ -177,20 +229,28 @@ def get_user(user_id: int):
         session.close()
 
 
-@router.route('/<int:user_id>/', methods=['DELETE'])
-@swag_from({
-    'tags': ['Users'],
-    'summary': 'Delete a user',
-    'description': 'Deletes a user by ID.',
-    'parameters': [
-        {'name': 'user_id', 'in': 'path', 'type': 'integer', 'required': True, 'description': 'User ID'},
-    ],
-    'responses': {
-        '204': {'description': 'User deleted'},
-        '404': {'description': 'User not found'},
-        '500': {'description': 'Server error'},
+@router.route("/<int:user_id>/", methods=["DELETE"])
+@swag_from(
+    {
+        "tags": ["Users"],
+        "summary": "Delete a user",
+        "description": "Deletes a user by ID.",
+        "parameters": [
+            {
+                "name": "user_id",
+                "in": "path",
+                "type": "integer",
+                "required": True,
+                "description": "User ID",
+            },
+        ],
+        "responses": {
+            "204": {"description": "User deleted"},
+            "404": {"description": "User not found"},
+            "500": {"description": "Server error"},
+        },
     }
-})
+)
 def delete_user(user_id: int):
     """Deletes a user by ID."""
     session = next(get_db())
