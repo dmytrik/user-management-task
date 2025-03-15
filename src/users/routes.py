@@ -5,7 +5,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from src.users.models import User
 from src.users.schemas import (
     UserCreateRequestSchema,
-    UserCreateResponseSchema,
+    UserCreateResponseSchema, UserUpdateRequestSchema, UserUpdateResponseSchema,
 )
 from core.database import get_db
 from flasgger import swag_from
@@ -55,7 +55,8 @@ def create_user():
     except Exception:
         session.rollback()
         return jsonify({"detail": "Unexpected server error"}), 500
-
+    finally:
+        session.close()
 
 @router.route('/', methods=['GET'])
 @swag_from({
@@ -80,6 +81,61 @@ def get_users():
 
         return jsonify(res), 200
     except SQLAlchemyError:
+        return jsonify({"detail": "Database error"}), 500
+    except Exception:
+        session.rollback()
+        return jsonify({"detail": "Unexpected server error"}), 500
+    finally:
+        session.close()
+
+
+@router.route('/<int:user_id>/', methods=['PUT'])
+@swag_from({
+    'tags': ['Users'],
+    'summary': 'Update a user',
+    'description': 'Updates a user by ID.',
+    'parameters': [
+        {'name': 'user_id', 'in': 'path', 'type': 'integer', 'required': True, 'description': 'User ID'},
+        {'name': 'body', 'in': 'body', 'required': True, 'schema': UserUpdateRequestSchema.model_json_schema()},
+    ],
+    'responses': {
+        '200': {'description': 'User updated', 'schema': UserUpdateResponseSchema.model_json_schema()},
+        '422': {'description': 'Validation error'},
+        '404': {'description': 'User not found'},
+        '409': {'description': 'Email already exists'},
+        '500': {'description': 'Server error'},
+    }
+})
+def update_user(user_id: int):
+    session = next(get_db())
+    try:
+        user_data = UserUpdateRequestSchema(**request.get_json())
+        stmt = select(User).where(User.id == user_id)
+        user = session.scalars(stmt).first()
+
+        if not user:
+            return jsonify({"detail": "User not found"}), 404
+
+        if user_data.name is not None:
+            user.name = user_data.name
+
+        if user_data.email is not None:
+            email_exists_stmt = select(User).where(User.email == user_data.email, User.id != user_id)
+            existing_user = session.scalars(email_exists_stmt).first()
+            if existing_user:
+                return jsonify({"detail": f"Email {user_data.email} already exists"}), 409
+            user.email = user_data.email
+
+        session.commit()
+        session.refresh(user)
+
+        res = UserUpdateResponseSchema.model_validate(user).model_dump()
+        return jsonify(res), 200
+    except TypeError:
+        session.rollback()
+        return jsonify({"detail": "Validation error"}), 422
+    except SQLAlchemyError:
+        session.rollback()
         return jsonify({"detail": "Database error"}), 500
     except Exception:
         session.rollback()
