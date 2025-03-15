@@ -175,3 +175,38 @@ def get_user(user_id: int):
         return jsonify({"detail": "Server error"}), 500
     finally:
         session.close()
+
+
+@router.route('/<int:user_id>/', methods=['DELETE'])
+@swag_from({
+    'tags': ['Users'],
+    'summary': 'Delete a user',
+    'description': 'Deletes a user by ID.',
+    'parameters': [
+        {'name': 'user_id', 'in': 'path', 'type': 'integer', 'required': True, 'description': 'User ID'},
+    ],
+    'responses': {
+        '204': {'description': 'User deleted'},
+        '404': {'description': 'User not found'},
+        '500': {'description': 'Server error'},
+    }
+})
+def delete_user(user_id: int):
+    """Deletes a user by ID."""
+    session = next(get_db())
+    try:
+        stmt = select(User).where(User.id == user_id)
+        user = session.scalars(stmt).first()
+        if not user:
+            return jsonify({"detail": "User not found"}), 404
+        session.delete(user)
+        session.commit()
+        return "", 204
+    except SQLAlchemyError:
+        session.rollback()
+        return jsonify({"detail": "Database error"}), 500
+    except Exception:
+        session.rollback()
+        return jsonify({"detail": "Server error"}), 500
+    finally:
+        session.close()
