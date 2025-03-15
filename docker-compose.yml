@@ -1,0 +1,40 @@
+services:
+  db:
+    image: postgres:15
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "5433:5432"
+    volumes:
+      - my_db:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $POSTGRES_USER" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  app:
+    build: .
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - ENVIRONMENT=docker
+    ports:
+      - "8001:8000"
+    healthcheck:
+      test: [ "CMD", "curl", "--fail", "http://localhost:8000/" ]
+      interval: 10s
+      retries: 10
+      start_period: 50s
+      timeout: 10s
+    command: >
+      sh -c "sleep 5 && alembic upgrade head && gunicorn run:app -b 0.0.0.0:8000 --reload"
+
+volumes:
+  my_db:

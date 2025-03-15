@@ -148,7 +148,6 @@ def update_user(user_id: int):
     "Updates a user by ID."
     session = next(get_db())
     try:
-
         user_data = UserUpdateRequestSchema(**request.get_json())
         print("!!!!!!! i am here")
         stmt = select(User).where(User.id == user_id)

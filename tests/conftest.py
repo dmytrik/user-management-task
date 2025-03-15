@@ -11,7 +11,9 @@ TEST_DATABASE_URL = settings.database_url
 
 
 test_engine = create_engine(TEST_DATABASE_URL, echo=True)
-TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
+TestSessionLocal = sessionmaker(
+    autocommit=False, autoflush=False, bind=test_engine
+)
 
 
 @pytest.fixture(scope="function")
