@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, EmailStr, field_validator
 
@@ -36,8 +35,7 @@ class UserCreateResponseSchema(BaseModel):
 
 
 class UserUpdateRequestSchema(UserBaseSchema):
-    name: Optional[str]
-    email: Optional[EmailStr]
+    pass
 
 
 class UserUpdateResponseSchema(UserCreateResponseSchema):

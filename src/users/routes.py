@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 
 from src.users.models import User
 from src.users.schemas import (
@@ -48,6 +49,38 @@ def create_user():
         return jsonify(res), 201
     except TypeError:
         return jsonify({"detail": "ValidationError"}), 422
+    except SQLAlchemyError:
+        session.rollback()
+        return jsonify({"detail": "Database error"}), 500
+    except Exception:
+        session.rollback()
+        return jsonify({"detail": "Unexpected server error"}), 500
+
+
+@router.route('/', methods=['GET'])
+@swag_from({
+    'tags': ['Users'],
+    'summary': 'Get all users',
+    'description': 'Returns a list of all users.',
+    'responses': {
+        '200': {'description': 'List of users', 'schema': {'type': 'array', 'items': UserCreateResponseSchema.model_json_schema()}},
+        '500': {'description': 'Server error'},
+    }
+})
+def get_users():
+    session = next(get_db())
+    try:
+        stmt = select(User)
+        users = session.scalars(stmt).all()
+
+        res = [
+            UserCreateResponseSchema.model_validate(user).model_dump()
+            for user in users
+        ]
+
+        return jsonify(res), 200
+    except SQLAlchemyError:
+        return jsonify({"detail": "Database error"}), 500
     except Exception:
         session.rollback()
         return jsonify({"detail": "Unexpected server error"}), 500
