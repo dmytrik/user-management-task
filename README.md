@@ -38,7 +38,7 @@ This project implements a **User Management REST API** built with **Flask** and 
 ### Setup
 1. Clone the repository:
    ```sh
-   git clone https://github.com/your-repo/user-management-api.git
+   git clone https://github.com/dmytrik/user-management-api.git
    cd user-management-api
    ```
 
