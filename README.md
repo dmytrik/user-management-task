@@ -81,7 +81,7 @@ This project implements a **User Management REST API** built with **Flask** and 
    docker-compose up --build
    ```
 
-2. The API will be available at: `http://localhost:8001`
+2. The API will be available at: `http://localhost:8001/apidocs/`
 
 ## API Endpoints
 | Method | Endpoint          | Description |
