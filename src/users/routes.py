@@ -141,52 +141,56 @@ def get_users():
 
 
 @router.route("/<int:user_id>/", methods=["PUT"])
-@swag_from({
-    "tags": ["Users"],
-    "summary": "Update a user",
-    "description": "Updates a user by ID with required name and email, and optional avatar upload.",
-    "consumes": ["multipart/form-data"],
-    "parameters": [
-        {
-            "name": "user_id",
-            "in": "path",
-            "type": "integer",
-            "required": True,
-            "description": "User ID",
+@swag_from(
+    {
+        "tags": ["Users"],
+        "summary": "Update a user",
+        "description": "Updates a user by ID with required name and email, and optional avatar upload.",
+        "consumes": ["multipart/form-data"],
+        "parameters": [
+            {
+                "name": "user_id",
+                "in": "path",
+                "type": "integer",
+                "required": True,
+                "description": "User ID",
+            },
+            {
+                "name": "name",
+                "in": "formData",
+                "type": "string",
+                "required": True,
+                "description": "The updated name of the user",
+            },
+            {
+                "name": "email",
+                "in": "formData",
+                "type": "string",
+                "required": True,
+                "description": "The updated email of the user",
+            },
+            {
+                "name": "avatar",
+                "in": "formData",
+                "type": "file",
+                "required": False,
+                "description": "The updated avatar image",
+            },
+        ],
+        "responses": {
+            "200": {
+                "description": "User updated",
+                "schema": UserUpdateResponseSchema.model_json_schema(),
+            },
+            "422": {
+                "description": "Validation error or missing required fields"
+            },
+            "404": {"description": "User not found"},
+            "409": {"description": "Email already exists"},
+            "500": {"description": "Server error"},
         },
-        {
-            "name": "name",
-            "in": "formData",
-            "type": "string",
-            "required": True,
-            "description": "The updated name of the user",
-        },
-        {
-            "name": "email",
-            "in": "formData",
-            "type": "string",
-            "required": True,
-            "description": "The updated email of the user",
-        },
-        {
-            "name": "avatar",
-            "in": "formData",
-            "type": "file",
-            "required": False,
-            "description": "The updated avatar image",
-        },
-    ],
-    "responses": {
-        "200": {
-            "description": "User updated",
-            "schema": UserUpdateResponseSchema.model_json_schema(),
-        },
-        "422": {"description": "Validation error or missing required fields"},
-        "404": {"description": "User not found"},
-        "409": {"description": "Email already exists"},
-        "500": {"description": "Server error"},
-    },
-})
+    }
+)
 def update_user(user_id: int):
     """Update an existing user by ID with all required fields."""
     session = next(get_db())
@@ -203,7 +207,9 @@ def update_user(user_id: int):
         )
         existing_user = session.scalars(email_exists_stmt).first()
         if existing_user:
-            return jsonify({"detail": f"Email {user_data.email} already exists"}), 409
+            return jsonify(
+                {"detail": f"Email {user_data.email} already exists"}
+            ), 409
 
         user.name = user_data.name
         user.email = user_data.email
@@ -212,9 +218,13 @@ def update_user(user_id: int):
             avatar_file = request.files["avatar"]
             if avatar_file.filename:
                 if user.avatar:
-                    old_s3_key = user.avatar.split(f"{settings.aws_s3_bucket}.s3.")[1].split("/", 1)[1]
+                    old_s3_key = user.avatar.split(
+                        f"{settings.aws_s3_bucket}.s3."
+                    )[1].split("/", 1)[1]
                     delete_file_from_s3(settings.aws_s3_bucket, old_s3_key)
-                avatar_url = upload_file_to_s3(avatar_file, settings.aws_s3_bucket, user.id)
+                avatar_url = upload_file_to_s3(
+                    avatar_file, settings.aws_s3_bucket, user.id
+                )
                 user.avatar = avatar_url
 
         session.commit()
