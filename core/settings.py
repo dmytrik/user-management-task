@@ -1,29 +1,41 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 class Settings(BaseSettings):
+    """Configuration settings for the application."""
+
     environment: str
-    db_port: int
-    db_user: str
-    db_password: str
-    db_name: str
+
+    postgres_port: int
+    postgres_user: str
+    postgres_password: str
+    postgres_name: str
+
+    aws_access_key_id: str
+    aws_secret_access_key: str
+    aws_s3_bucket: str
+    aws_region: str
 
     model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        extra="ignore"
+        env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )
 
     @property
     def db_host(self) -> str:
+        """Return the database host based on the environment."""
         if self.environment == "local":
             return "localhost"
         return "db"
 
     @property
     def database_url(self) -> str:
+        """Generate the database URL based on the environment."""
+        if self.environment == "testing":
+            return "sqlite:///:memory:"
         return (
-            f"postgresql+asyncpg://{self.db_user}:{self.db_password}"
-            f"@{self.db_host}:{self.db_port}/{self.db_name}"
+            f"postgresql+psycopg2://{self.postgres_user}:{self.postgres_password}"
+            f"@{self.db_host}:{self.postgres_port}/{self.postgres_name}"
         )
+
 
 settings = Settings()
