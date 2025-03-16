@@ -1,13 +1,11 @@
-from flask import (
-    Blueprint,
-    jsonify,
-    request
-)
+from flask import Blueprint, jsonify, request
 from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from flasgger import swag_from
 
+from core.settings import settings
+from core.utils import upload_file_to_s3, delete_file_from_s3
 from src.users.models import User
 from src.users.schemas import (
     UserCreateRequestSchema,
@@ -26,13 +24,29 @@ router = Blueprint("users", __name__, url_prefix="/users")
     {
         "tags": ["Users"],
         "summary": "Create a new user",
-        "description": "Creates a user with name and email.",
+        "description": "Creates a user with name, email, and optional avatar upload.",
+        "consumes": ["multipart/form-data"],
         "parameters": [
             {
-                "name": "body",
-                "in": "body",
+                "name": "name",
+                "in": "formData",
+                "type": "string",
                 "required": True,
-                "schema": UserCreateRequestSchema.model_json_schema(),
+                "description": "The name of the user",
+            },
+            {
+                "name": "email",
+                "in": "formData",
+                "type": "string",
+                "required": True,
+                "description": "The email of the user",
+            },
+            {
+                "name": "avatar",
+                "in": "formData",
+                "type": "file",
+                "required": False,
+                "description": "The user's avatar image",
             },
         ],
         "responses": {
@@ -50,29 +64,38 @@ def create_user():
     """Create a new user in the database."""
     session = next(get_db())
     try:
-        user_data = UserCreateRequestSchema(**request.get_json())
+        user_data = UserCreateRequestSchema(**request.form)
 
         stmt = select(User).where(User.email == user_data.email)
         existing_user = session.scalars(stmt).first()
-
         if existing_user:
             return jsonify({"detail": "Email already exists"}), 409
 
         new_user = User(name=user_data.name, email=user_data.email)
         session.add(new_user)
+        session.flush()
+
+        if "avatar" in request.files:
+            avatar_file = request.files["avatar"]
+            if avatar_file.filename:
+                avatar_url = upload_file_to_s3(
+                    avatar_file, settings.aws_s3_bucket, new_user.id
+                )
+                new_user.avatar = avatar_url
+
         session.commit()
         session.refresh(new_user)
 
         res = UserCreateResponseSchema.model_validate(new_user).model_dump()
         return jsonify(res), 201
     except TypeError:
-        return jsonify({"detail": "ValidationError"}), 422
+        return jsonify({"detail": "Validation error"}), 422
     except SQLAlchemyError:
         session.rollback()
         return jsonify({"detail": "Database error"}), 500
-    except Exception:
+    except Exception as e:
         session.rollback()
-        return jsonify({"detail": "Unexpected server error"}), 500
+        return jsonify({"detail": f"Unexpected server error: {str(e)}"}), 500
     finally:
         session.close()
 
@@ -118,63 +141,81 @@ def get_users():
 
 
 @router.route("/<int:user_id>/", methods=["PUT"])
-@swag_from(
-    {
-        "tags": ["Users"],
-        "summary": "Update a user",
-        "description": "Updates a user by ID.",
-        "parameters": [
-            {
-                "name": "user_id",
-                "in": "path",
-                "type": "integer",
-                "required": True,
-                "description": "User ID",
-            },
-            {
-                "name": "body",
-                "in": "body",
-                "required": True,
-                "schema": UserUpdateRequestSchema.model_json_schema(),
-            },
-        ],
-        "responses": {
-            "200": {
-                "description": "User updated",
-                "schema": UserUpdateResponseSchema.model_json_schema(),
-            },
-            "422": {"description": "Validation error"},
-            "404": {"description": "User not found"},
-            "409": {"description": "Email already exists"},
-            "500": {"description": "Server error"},
+@swag_from({
+    "tags": ["Users"],
+    "summary": "Update a user",
+    "description": "Updates a user by ID with required name and email, and optional avatar upload.",
+    "consumes": ["multipart/form-data"],
+    "parameters": [
+        {
+            "name": "user_id",
+            "in": "path",
+            "type": "integer",
+            "required": True,
+            "description": "User ID",
         },
-    }
-)
+        {
+            "name": "name",
+            "in": "formData",
+            "type": "string",
+            "required": True,
+            "description": "The updated name of the user",
+        },
+        {
+            "name": "email",
+            "in": "formData",
+            "type": "string",
+            "required": True,
+            "description": "The updated email of the user",
+        },
+        {
+            "name": "avatar",
+            "in": "formData",
+            "type": "file",
+            "required": False,
+            "description": "The updated avatar image",
+        },
+    ],
+    "responses": {
+        "200": {
+            "description": "User updated",
+            "schema": UserUpdateResponseSchema.model_json_schema(),
+        },
+        "422": {"description": "Validation error or missing required fields"},
+        "404": {"description": "User not found"},
+        "409": {"description": "Email already exists"},
+        "500": {"description": "Server error"},
+    },
+})
 def update_user(user_id: int):
-    """Update an existing user by ID."""
+    """Update an existing user by ID with all required fields."""
     session = next(get_db())
     try:
-        user_data = UserUpdateRequestSchema(**request.get_json())
-        print("!!!!!!! i am here")
+        user_data = UserUpdateRequestSchema(**request.form)
+
         stmt = select(User).where(User.id == user_id)
         user = session.scalars(stmt).first()
-
         if not user:
             return jsonify({"detail": "User not found"}), 404
 
-        if user_data.name is not None:
-            user.name = user_data.name
+        email_exists_stmt = select(User).where(
+            User.email == user_data.email, User.id != user_id
+        )
+        existing_user = session.scalars(email_exists_stmt).first()
+        if existing_user:
+            return jsonify({"detail": f"Email {user_data.email} already exists"}), 409
 
-        if user_data.email is not None:
-            email_exists_stmt = select(User).where(
-                User.email == user_data.email, User.id != user_id
-            )
-            existing_user = session.scalars(email_exists_stmt).first()
-            if existing_user:
-                return jsonify(
-                    {"detail": f"Email {user_data.email} already exists"}
-                ), 409
-            user.email = user_data.email
+        user.name = user_data.name
+        user.email = user_data.email
+
+        if "avatar" in request.files:
+            avatar_file = request.files["avatar"]
+            if avatar_file.filename:
+                if user.avatar:
+                    old_s3_key = user.avatar.split(f"{settings.aws_s3_bucket}.s3.")[1].split("/", 1)[1]
+                    delete_file_from_s3(settings.aws_s3_bucket, old_s3_key)
+                avatar_url = upload_file_to_s3(avatar_file, settings.aws_s3_bucket, user.id)
+                user.avatar = avatar_url
 
         session.commit()
         session.refresh(user)
@@ -187,9 +228,9 @@ def update_user(user_id: int):
     except SQLAlchemyError:
         session.rollback()
         return jsonify({"detail": "Database error"}), 500
-    except Exception:
+    except Exception as e:
         session.rollback()
-        return jsonify({"detail": "Unexpected server error"}), 500
+        return jsonify({"detail": f"Unexpected server error: {str(e)}"}), 500
     finally:
         session.close()
 

@@ -5,10 +5,16 @@ class Settings(BaseSettings):
     """Configuration settings for the application."""
 
     environment: str
+
     postgres_port: int
     postgres_user: str
     postgres_password: str
     postgres_name: str
+
+    aws_access_key_id: str
+    aws_secret_access_key: str
+    aws_s3_bucket: str
+    aws_region: str
 
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"

@@ -1,15 +1,16 @@
 # User Management REST API
 
 ## Description
-This project implements a simple **User Management REST API** using **Flask** and **SQLAlchemy**. It provides CRUD operations to manage users in a relational database.
+This project implements a **User Management REST API** built with **Flask** and **SQLAlchemy**. It provides CRUD operations to manage users in a relational database, with support for avatar image uploads stored in **Amazon S3**.
 
 ## Features
-- Create a new user (`POST /users`)
-- Retrieve a list of all users (`GET /users`)
-- Get user details by ID (`GET /users/{id}`)
-- Update user details (`PUT /users/{id}`)
-- Delete a user (`DELETE /users/{id}`)
+- Create a new user with optional avatar (`POST /users/`)
+- Retrieve a list of all users (`GET /users/`)
+- Get user details by ID (`GET /users/{id}/`)
+- Update user details with required fields and optional avatar (`PUT /users/{id}/`)
+- Delete a user (`DELETE /users/{id}/`)
 - Database management using **SQLAlchemy**
+- Avatar storage in **Amazon S3**
 - API documentation with **Swagger (Flasgger)**
 - Containerized using **Docker**
 - Automated tests with **pytest** and **Poetry**
@@ -17,8 +18,9 @@ This project implements a simple **User Management REST API** using **Flask** an
 ## Technologies Used
 - **Flask** - Web framework
 - **SQLAlchemy** - ORM for database interaction
-- **PostgreSQL / SQLite** - Database options
+- **PostgreSQL / SQLite** - Database options (PostgreSQL for production, SQLite for testing)
 - **Pydantic** - Data validation
+- **boto3** - Amazon S3 integration
 - **Docker & Docker Compose** - Containerization
 - **Gunicorn** - Production WSGI server
 - **Flasgger** - API documentation
@@ -28,9 +30,10 @@ This project implements a simple **User Management REST API** using **Flask** an
 
 ### Prerequisites
 - Python 3.10+
-- PostgreSQL or SQLite
-- Docker (if using containerized deployment)
+- PostgreSQL (for local or Docker deployment)
+- Docker (for containerized deployment)
 - Poetry for dependency management
+- AWS account with S3 bucket and IAM credentials
 
 ### Setup
 1. Clone the repository:
@@ -39,22 +42,35 @@ This project implements a simple **User Management REST API** using **Flask** an
    cd user-management-api
    ```
 
-2. Install dependencies using Poetry:
+2. Configure environment variables in .env:
+   ```
+   ENVIRONMENT=local
+   POSTGRES_NAME=
+   POSTGRES_USER=
+   POSTGRES_PASSWORD=
+   POSTGRES_PORT=
+   AWS_ACCESS_KEY_ID=
+   AWS_SECRET_ACCESS_KEY=
+   AWS_S3_BUCKET=
+   AWS_REGION=
+   ```
+
+3. Install dependencies using Poetry:
    ```sh
    poetry install
    ```
 
-3. Activate the virtual environment:
+4. Activate the virtual environment:
    ```sh
    poetry shell
    ```
 
-4. Set up the database:
+5. Set up the database:
    ```sh
    alembic upgrade head
    ```
 
-5. Run the application:
+6. Run the application:
    ```sh
    gunicorn run:app -b 0.0.0.0:8000 --reload
    ```

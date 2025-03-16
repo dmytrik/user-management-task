@@ -26,15 +26,18 @@ class UserBaseSchema(BaseModel):
 
 class UserCreateRequestSchema(UserBaseSchema):
     """Schema for creating a new user request."""
+
     pass
 
 
 class UserCreateResponseSchema(BaseModel):
     """Schema for user creation response."""
+
     id: int
     name: str
     email: EmailStr
     created_at: datetime
+    avatar: str | None = None
 
     class Config:
         from_attributes = True
@@ -42,9 +45,11 @@ class UserCreateResponseSchema(BaseModel):
 
 class UserUpdateRequestSchema(UserBaseSchema):
     """Schema for updating a user request."""
+
     pass
 
 
 class UserUpdateResponseSchema(UserCreateResponseSchema):
     """Schema for user update response."""
+
     pass
